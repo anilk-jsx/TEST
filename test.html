@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Camera Upload Interface</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #f7f8fa;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      border-radius: 1rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      text-align: center;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    button {
+      background: #10a37f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 0.8rem 1.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0d876a;
+    }
+    img {
+      margin-top: 1rem;
+      max-width: 100%;
+      border-radius: 0.75rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Take or Upload a Photo</h2>
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" />
+    <button onclick="document.getElementById('cameraInput').click()">📷 Open Camera</button>
+    <img id="preview" alt="Image preview" />
+  </div>
+
+  <script>
+    const input = document.getElementById('cameraInput');
+    const preview = document.getElementById('preview');
+
+    input.addEventListener('change', () => {
+      const file = input.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  </script>
+</body>
+</html>
