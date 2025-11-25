@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Location Tracking With Path</title>
+
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+    }
+
+    #map {
+        height: 100%;
+        width: 100%;
+    }
+
+    /* Mobile-friendly toggle button */
+    #trackBtn {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 14px 22px;
+        font-size: 18px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 30px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        cursor: pointer;
+        z-index: 1000;
+    }
+
+    #trackBtn:active {
+        background: #005fcc;
+    }
+</style>
+</head>
+<body>
+
+<button id="trackBtn">Start Tracking</button>
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let map = L.map('map').setView([0, 0], 2);
+let marker = null;
+let watchId = null;
+
+// Array to store path points
+let pathCoords = [];
+
+// Polyline layer for path
+let pathLine = L.polyline([], { color: "blue", weight: 5 }).addTo(map);
+
+// Load map tiles
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+}).addTo(map);
+
+// Button click event
+document.getElementById("trackBtn").addEventListener("click", () => {
+    if (watchId) {
+        // STOP TRACKING
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+
+        document.getElementById("trackBtn").textContent = "Start Tracking";
+
+        if (marker) marker.remove();
+        marker = null;
+        
+        // Keep the path visible but stop updating
+    } else {
+        // START TRACKING
+        pathCoords = [];                // Reset path
+        pathLine.setLatLngs([]);        // Clear previous line
+
+        watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const latlng = [latitude, longitude];
+
+                // Add point to path
+                pathCoords.push(latlng);
+
+                // Update polyline
+                pathLine.setLatLngs(pathCoords);
+
+                // Place or move marker
+                if (!marker) {
+                    marker = L.marker(latlng).addTo(map);
+                } else {
+                    marker.setLatLng(latlng);
+                }
+
+                // Center the map
+                map.setView(latlng, 16);
+            },
+            (err) => {
+                console.error(err);
+                alert("Unable to access your location.");
+            },
+            { enableHighAccuracy: true }
+        );
+
+        document.getElementById("trackBtn").textContent = "Stop Tracking";
+    }
+});
+</script>
+
+</body>
+</html>
