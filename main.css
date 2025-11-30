@@ -5,3 +5,18 @@ html, body {
     overflow: hidden;
     margin: 0;
 }
+canvas {
+    width: 100vw !important;
+    height: 100vh !important;
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+:root {
+    --vh: 1vh;
+}
+
+body {
+    height: calc(var(--vh) * 100);
+}
