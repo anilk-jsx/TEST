@@ -66,7 +66,7 @@ function init() {
     initCurlNoise();
 
     renderer = new THREE.WebGLRenderer( {  } );
-    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setPixelRatio( Math.min(window.devicePixelRatio || 1, 2) );
     renderer.setSize( innerWidth, innerHeight );
     renderer.autoClear = false;
     document.body.appendChild(renderer.domElement);
@@ -86,6 +86,10 @@ function init() {
 
     postProcCamera = new THREE.PerspectiveCamera( 20, innerWidth / innerHeight, 2, 2000 );
     postProcCamera.position.set(0, 0, 10);
+
+    // respond to window resizes
+    window.addEventListener('resize', onWindowResize);
+    window.addEventListener('orientationchange', onWindowResize);
 
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.target.set(cameraTarget.x, cameraTarget.y, cameraTarget.z);
@@ -202,10 +206,28 @@ function init() {
 
 
 
+    // choose render target type: prefer FloatType for quality but fallback to UnsignedByteType on devices
+    var rtType = THREE.UnsignedByteType;
+    try {
+        // three.js exposes capabilities; prefer float when supported
+        if(renderer && renderer.capabilities) {
+            // WebGL2 typically supports float render targets
+            if(renderer.capabilities.isWebGL2) {
+                rtType = THREE.FloatType;
+            } else {
+                // check for OES_texture_float support on WebGL1
+                var ext = renderer.extensions && renderer.extensions.get ? renderer.extensions.get('OES_texture_float') : null;
+                if(ext) rtType = THREE.FloatType;
+            }
+        }
+    } catch(e) {
+        rtType = THREE.UnsignedByteType;
+    }
+
     offscreenRT = new THREE.WebGLRenderTarget(innerWidth, innerHeight, {
         stencilBuffer: false,
         depthBuffer: false,
-        type: THREE.FloatType,
+        type: rtType,
     });
 
     var postProcQuadGeo = new THREE.PlaneBufferGeometry(2,2);
@@ -561,6 +583,50 @@ function render(now) {
             frames = 0;
         }
     }
+}
+
+function onWindowResize() {
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+
+    // update renderer size and pixel ratio
+    renderer.setPixelRatio( Math.min(window.devicePixelRatio || 1, 2) );
+    renderer.setSize(w, h);
+
+    // update main camera
+    if(camera) {
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+    }
+
+    // update post-process camera
+    if(postProcCamera) {
+        postProcCamera.aspect = w / h;
+        postProcCamera.updateProjectionMatrix();
+    }
+
+    // update render target size
+    if(offscreenRT) {
+        if(offscreenRT.setSize) {
+            offscreenRT.setSize(w, h);
+        }
+    }
+
+    // update shader uniforms that depend on resolution
+    try {
+        if(shaderPassMaterial && shaderPassMaterial.uniforms && shaderPassMaterial.uniforms.uResolution) {
+            shaderPassMaterial.uniforms.uResolution.value.set(w, h);
+        }
+    } catch(e) { }
+
+    try {
+        if(postProcQuadMaterial && postProcQuadMaterial.uniforms && postProcQuadMaterial.uniforms.uResolution) {
+            postProcQuadMaterial.uniforms.uResolution.value.set(w, h);
+        }
+    } catch(e) { }
+
+    // reset sample accumulation when size changes
+    samples = 0;
 }
 
 
